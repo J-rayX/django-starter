@@ -1,0 +1,68 @@
+name: django
+secrets:
+  django_secret_key:
+    default: warning-override-for-production
+  postgres_password:
+    default: warning-override-for-production
+  django_admin_email:
+    default: noreply@architect.io
+  django_admin_username:
+    default: admin
+  django_admin_password:
+    default: password
+
+services:
+  db:
+    image: postgres
+    interfaces:
+      main: 5432
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${{ secrets.postgres_password }}
+  web:
+    build:
+      context: .
+    command: |
+      sh -c '
+        python manage.py makemigrations
+        python manage.py collectstatic --noinput
+        python manage.py migrate --noinput
+        python manage.py createsuperuser --noinput
+        uwsgi --http "0.0.0.0:8000" --module architectexample.wsgi:application --master --processes 4 --threads 2 --static-map /static=/src/main/app/static
+      '
+    interfaces:
+      main: 8000
+    environment:
+      ALLOWED_HOST: .${{ ingresses.web.host }}
+      SECRET_KEY: ${{ secrets.django_secret_key }}
+      POSTGRES_DB: ${{ services.db.environment.POSTGRES_DB }}
+      POSTGRES_USER: ${{ services.db.environment.POSTGRES_USER }}
+      POSTGRES_PASSWORD: ${{ services.db.environment.POSTGRES_PASSWORD }}
+      POSTGRES_HOST: ${{ services.db.interfaces.main.host }}
+      POSTGRES_PORT: ${{ services.db.interfaces.main.port }}
+      DJANGO_SUPERUSER_USERNAME: ${{ secrets.django_admin_username }}
+      DJANGO_SUPERUSER_EMAIL: ${{ secrets.django_admin_email }}
+      DJANGO_SUPERUSER_PASSWORD: ${{ secrets.django_admin_password }}
+    ${{ if architect.environment == 'local' }}:
+      command: |
+        sh -c '
+          python manage.py makemigrations
+          python manage.py collectstatic --noinput
+          python manage.py migrate --noinput
+          python manage.py createsuperuser --noinput
+          python manage.py runserver 0.0.0.0:${{ services.web.interfaces.main.port }}
+        '
+      environment:
+        ALLOWED_HOST: '*'
+        DEBUG: 'True'
+      volumes:
+        web:
+          mount_path: /usr/src/app
+          host_path: .
+
+interfaces:
+  web:
+    url: ${{ services.web.interfaces.main.url }}
+    ingress:
+      subdomain: app
