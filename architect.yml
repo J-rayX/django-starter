@@ -1,4 +1,4 @@
-name: django
+name: django-starter
 secrets:
   django_secret_key:
     default: warning-override-for-production
@@ -10,7 +10,6 @@ secrets:
     default: admin
   django_admin_password:
     default: password
-
 services:
   db:
     image: postgres
@@ -19,7 +18,7 @@ services:
     environment:
       POSTGRES_DB: postgres
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${{ secrets.postgres_password }}
+      POSTGRES_PASSWORD: '${{ secrets.postgres_password }}'
   web:
     build:
       context: .
@@ -34,17 +33,17 @@ services:
     interfaces:
       main: 8000
     environment:
-      ALLOWED_HOST: .${{ ingresses.web.host }}
-      SECRET_KEY: ${{ secrets.django_secret_key }}
-      POSTGRES_DB: ${{ services.db.environment.POSTGRES_DB }}
-      POSTGRES_USER: ${{ services.db.environment.POSTGRES_USER }}
-      POSTGRES_PASSWORD: ${{ services.db.environment.POSTGRES_PASSWORD }}
-      POSTGRES_HOST: ${{ services.db.interfaces.main.host }}
-      POSTGRES_PORT: ${{ services.db.interfaces.main.port }}
-      DJANGO_SUPERUSER_USERNAME: ${{ secrets.django_admin_username }}
-      DJANGO_SUPERUSER_EMAIL: ${{ secrets.django_admin_email }}
-      DJANGO_SUPERUSER_PASSWORD: ${{ secrets.django_admin_password }}
-    ${{ if architect.environment == 'local' }}:
+      ALLOWED_HOST: '.${{ ingresses.web.host }}'
+      SECRET_KEY: '${{ secrets.django_secret_key }}'
+      POSTGRES_DB: '${{ services.db.environment.POSTGRES_DB }}'
+      POSTGRES_USER: '${{ services.db.environment.POSTGRES_USER }}'
+      POSTGRES_PASSWORD: '${{ services.db.environment.POSTGRES_PASSWORD }}'
+      POSTGRES_HOST: '${{ services.db.interfaces.main.host }}'
+      POSTGRES_PORT: '${{ services.db.interfaces.main.port }}'
+      DJANGO_SUPERUSER_USERNAME: '${{ secrets.django_admin_username }}'
+      DJANGO_SUPERUSER_EMAIL: '${{ secrets.django_admin_email }}'
+      DJANGO_SUPERUSER_PASSWORD: '${{ secrets.django_admin_password }}'
+    '${{ if architect.environment == ''local'' }}':
       command: |
         sh -c '
           python manage.py makemigrations
@@ -60,9 +59,8 @@ services:
         web:
           mount_path: /usr/src/app
           host_path: .
-
 interfaces:
   web:
-    url: ${{ services.web.interfaces.main.url }}
+    url: '${{ services.web.interfaces.main.url }}'
     ingress:
       subdomain: app
